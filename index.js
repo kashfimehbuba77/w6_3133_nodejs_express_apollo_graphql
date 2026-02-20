@@ -13,39 +13,52 @@ dotenv.config();
 
 const app = express();
 
-// Optional: apply globally (keeps /graphql middleware shorter)
+// Middleware
 app.use(cors());
 app.use(express.json());
 
-// Validate env (prevents silent undefined issues)
-const requiredEnv = ["DB_USER_NAME", "DB_PASSWORD", "CLUSTER_ID", "DB_NAME", "PORT"];
+// Validate required env vars
+const requiredEnv = ["PORT", "DB_NAME", "DB_USER_NAME", "DB_PASSWORD", "CLUSTER_ID"];
 for (const key of requiredEnv) {
   if (!process.env[key]) {
-    console.error(`Missing environment variable: ${key}`);
+    console.error(`❌ Missing environment variable: ${key}`);
     process.exit(1);
   }
 }
 
-const DB_CONNECTION = `mongodb+srv://${process.env.DB_USER_NAME}:${process.env.DB_PASSWORD}@cluster0.${process.env.CLUSTER_ID}.mongodb.net/${process.env.DB_NAME}?retryWrites=true&w=majority&appName=Cluster0`;
+// MongoDB Atlas connection string
+const DB_CONNECTION = `mongodb+srv://${process.env.DB_USER_NAME}:${encodeURIComponent(
+  process.env.DB_PASSWORD
+)}@cluster0.${process.env.CLUSTER_ID}.mongodb.net/${process.env.DB_NAME}?retryWrites=true&w=majority&appName=Cluster0`;
 
-async function connectDB() {
-  await mongoose.connect(DB_CONNECTION);
-  console.log("✅ Connected to MongoDB Atlas");
-}
+const connectDB = async () => {
+  try {
+    await mongoose.connect(DB_CONNECTION);
+    console.log("✅ Connected to MongoDB Atlas");
+  } catch (error) {
+    console.error("❌ Unable to connect to DB:", error.message);
+    process.exit(1);
+  }
+};
 
 async function startServer() {
   try {
+    // 1) Connect DB first
     await connectDB();
 
+    // 2) Create Apollo Server
     const server = new ApolloServer({
       typeDefs: movieSchema,
       resolvers: movieResolvers,
     });
 
+    // 3) Start Apollo Server
     await server.start();
 
+    // 4) Mount GraphQL endpoint
     app.use("/graphql", expressMiddleware(server));
 
+    // 5) Start Express server
     app.listen(process.env.PORT, () => {
       console.log(`🚀 Server ready at http://localhost:${process.env.PORT}/graphql`);
     });
