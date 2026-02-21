@@ -1,33 +1,45 @@
-import MovieModel from '../models/Movie.js';
-
-// Resolvers define the technique for fetching the types defined in the schema.
-
-// graphql/resolvers.js
-const MovieModel = require("../models/Movie.js");
+import Movie from "../models/Movie.js";
 
 const resolvers = {
   Query: {
     // a) Get all movies
-    getAllMovies: () => MovieModel.getAll(),
+    getAllMovies: async () => {
+      return await Movie.find();
+    },
 
     // b) Get movie by ID
-    getMovieById: (_, { id }) => MovieModel.getById(id),
+    getMovieById: async (_, { id }) => {
+      return await Movie.findById(id);
+    },
 
     // c) Get movies by Director name using static methods
-    getMoviesByDirector: (_, { director_name }) =>
-      MovieModel.getByDirectorName(director_name),
+    getMoviesByDirector: async (_, { director_name }) => {
+      return await Movie.findByDirector(director_name);
+    },
   },
 
   Mutation: {
     // a) Insert new movie
-    addMovie: (_, { movie }) => MovieModel.add(movie),
+    addMovie: async (_, { movie }) => {
+      return await Movie.create(movie);
+    },
 
     // b) Update movie
-    updateMovie: (_, { id, movie }) => MovieModel.update(id, movie),
+    updateMovie: async (_, { id, movie }) => {
+      const updated = await Movie.findByIdAndUpdate(id, movie, {
+        new: true,
+        runValidators: true,
+      });
+      if (!updated) throw new Error("Movie not found");
+      return updated;
+    },
 
     // c) Delete movie by ID
-    deleteMovie: (_, { id }) => MovieModel.deleteById(id),
+    deleteMovie: async (_, { id }) => {
+      const deleted = await Movie.findByIdAndDelete(id);
+      return !!deleted;
+    },
   },
 };
 
-module.exports = resolvers;
+export default resolvers;

@@ -38,4 +38,4 @@ const typeDefs = `#graphql
     deleteMovie(id: ID!): Boolean!
   }
 `;
-module.exports = typeDefs;
+export default typeDefs;
